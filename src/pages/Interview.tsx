@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { interviewQuestions, getRoleTitle } from "@/data/interviewQuestions";
-import { Mic, MicOff, ArrowLeft, SkipForward, CheckCircle, Brain } from "lucide-react";
+import { Mic, MicOff, ArrowLeft, SkipForward, CheckCircle } from "lucide-react";
+import "@/types/speech.d.ts";
+
+type SpeechRecognitionType = typeof window.SpeechRecognition extends new () => infer R ? R : never;
 
 const Interview = () => {
   const { roleId } = useParams<{ roleId: string }>();
@@ -16,7 +19,7 @@ const Interview = () => {
   const [answers, setAnswers] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionType | null>(null);
 
   const questions = roleId ? interviewQuestions[roleId] || [] : [];
   const roleTitle = roleId ? getRoleTitle(roleId) : "";
@@ -46,13 +49,14 @@ const Interview = () => {
   };
 
   const startListening = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognitionAPI) {
       toast({ title: "Speech recognition not supported", variant: "destructive" });
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current = new SpeechRecognitionAPI();
     recognitionRef.current.continuous = true;
     recognitionRef.current.interimResults = true;
 
